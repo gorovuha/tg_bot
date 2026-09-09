@@ -1,116 +1,56 @@
-# Propaganda Watchdog Bot  🤖
+# Propaganda Watchdog Bot
 
-> **DIAL 2026 Hackathon** · Problem 03 · Team bot layer
+> **DIAL 2026 Hackathon** · Problem 03 "Telegram Narrative Bot" · post-hackathon continuation
 
-A Telegram bot that spots propaganda narratives in real time.
-Pluggable into any channel as a slash command.
+A Telegram bot that spots propaganda narratives in groups and channels, shows receipts for every flag,
+and groups flagged messages into narrative clusters.
 
----
+Status: hackathon skeleton fixed up. The classifier is still a
+**deterministic keyword mock** — every result is marked as such. Phase 1–2 replace it with embedding
+retrieval over the EUvsDisinfo case database.
 
-## Project structure
+## Structure
 
 ```
-help_pavel/
-├── bot/
-│   ├── main.py          # Entry point — run this
-│   ├── handlers.py      # All /command handlers + message watcher
-│   └── formatter.py     # Telegram HTML message formatting
-├── services/
-│   ├── classifier.py    # HTTP client → teammates' model API (+ mock fallback)
-│   └── __init__.py
-├── storage/
-│   ├── db.py            # SQLite — messages, flagged, watch_chats
-│   └── __init__.py
-├── data/                # Auto-created — holds bot.db
-├── .env.example
-├── requirements.txt
-└── index.html           # Hackathon landing page (from repo)
+bot/main.py            entry point (polling)
+bot/handlers.py        commands + watcher; channel-post command dispatcher
+bot/formatter.py       Telegram HTML rendering
+services/classifier.py classify(text) -> ClassificationResult (backends: mock; retrieval planned)
+storage/db.py          SQLite: messages (with origin/link), flagged (unique per message), watch_chats
+tests/                 pytest
 ```
-
----
 
 ## Quick start
 
-### 1. Get a Bot Token
-Open Telegram → search **@BotFather** → `/newbot` → copy the token.
-
-Then disable privacy mode so the bot can read all messages:
-```
-/setprivacy → @YourBot → Disable
-```
-
-### 2. Install dependencies
-
 ```bash
-cd help_pavel
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+uv sync                       # Python 3.12 venv + deps (installs uv: brew install uv)
+cp .env.example .env          # paste TELEGRAM_BOT_TOKEN from @BotFather
+uv run python bot/main.py
 ```
 
-### 3. Configure
+In @BotFather run `/setprivacy` → your bot → **Disable**, otherwise the bot won't see group messages.
+Add the bot to a group or channel **as admin**, then send `/watch`.
 
-```bash
-cp .env.example .env
-# Edit .env and paste your TELEGRAM_BOT_TOKEN
-```
-
-### 4. Run the bot
-
-```bash
-python bot/main.py
-```
-
----
 
 ## Commands
 
 | Command | Description |
 |---|---|
-| `/start` | Welcome message |
-| `/help` | List all commands |
-| `/watch` | Toggle real-time monitoring on/off |
-| `/analyze` | Analyse last 10 stored messages |
-| `/analyze 20` | Analyse last 20 stored messages |
-| `/analyze <text>` | Analyse a specific text snippet |
-| `/report` | Show last 10 flagged messages (with receipts) |
-| `/report 20` | Show last 20 flagged messages |
-| `/cluster` | Show narrative cluster map |
+| `/watch` | Toggle real-time monitoring (chat admins only) |
+| `/analyze` / `/analyze 20` | Re-analyse last N watched messages |
+| `/analyze <text>` | Analyse a specific text |
+| `/analyze` as a reply | Analyse the replied-to message |
+| `/report [N]` | Last N flagged messages with source and link |
+| `/cluster` | Narrative clusters with source channels |
 
----
+Commands work in private chats, groups and channels (channel posts are dispatched manually since
+Telegram's command handler ignores them).
 
-## Classifier API integration
+## Development
 
-Set `CLASSIFIER_API_URL` in `.env` to point at the teammates' model:
-
-```
-CLASSIFIER_API_URL=http://their-server:8001
+```bash
+uv run pytest
+uv run ruff check . && uv run ruff format .
 ```
 
-### Expected contract
-
-```
-POST /classify
-{ "text": "message content" }
-
-→ 200 OK
-{
-    "is_propaganda": true,
-    "confidence": 0.92,
-    "narrative_label": "Anti-NATO destabilisation",
-    "cluster_id": "cluster_42"     ← optional
-}
-```
-
-If the API URL is not set or unreachable, the bot automatically falls back to a **built-in mock classifier** (keyword heuristics) so the demo works standalone.
-
----
-
-## Adding the bot to a Telegram group
-
-1. Create a group or use an existing one
-2. Add the bot as a member: **Group Settings → Members → search your bot's username**
-3. Promote to **Admin** (so it can read messages)
-4. Send `/watch` in the group to start monitoring
-
-No cloud hosting needed — polling mode works with the bot running locally.
+Env: `TELEGRAM_BOT_TOKEN`, `CLASSIFIER_BACKEND` (`mock`), `BOT_DB_PATH`.

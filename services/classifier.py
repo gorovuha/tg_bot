@@ -1,35 +1,35 @@
-from __future__ import annotations
 """
 services/classifier.py
-HTTP client that calls the teammates' propaganda classification API.
+Classification layer: `classify(text)` returns a ClassificationResult.
 
-Expected API contract:
-    POST {CLASSIFIER_API_URL}/classify
-    Body:  { "text": "<message content>" }
-    Response:
-    {
-        "is_propaganda": true,
-        "confidence": 0.92,
-        "narrative_label": "Anti-NATO destabilisation",
-        "cluster_id": "cluster_42"        # optional
-    }
+Backends (selected with CLASSIFIER_BACKEND, default "mock"):
+  mock       — deterministic keyword heuristics (RU/UK/EN). Demo only; never a real model.
+  retrieval  — (phase 2) embedding search over EUvsDisinfo cases; see docs/PLAN.md.
 
-If CLASSIFIER_API_URL is not set or the API is unreachable,
-the module falls back to a local MOCK classifier (keyword heuristics)
-so the bot can be demoed independently.
+`ClassificationResult` is the contract between the bot and any backend. Extend it,
+don't leak backend internals into handlers.
 """
 
-import os
-import logging
-import random
-from dataclasses import dataclass, field
+from __future__ import annotations
 
-import httpx
+import logging
+import os
+import re
+from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
-CLASSIFIER_API_URL: str | None = os.getenv("CLASSIFIER_API_URL")  # e.g. http://localhost:8001
-CLASSIFIER_TIMEOUT: float = float(os.getenv("CLASSIFIER_TIMEOUT", "10"))
+MOCK_BACKEND = "mock"
+
+
+@dataclass
+class Receipt:
+    """One piece of evidence for a flag (e.g. a matching EUvsDisinfo case)."""
+
+    title: str
+    url: str | None = None
+    similarity: float = 0.0
+    excerpt: str | None = None
 
 
 @dataclass
@@ -37,91 +37,82 @@ class ClassificationResult:
     is_propaganda: bool
     confidence: float
     narrative_label: str
-    cluster_id: str | None = field(default=None)
+    cluster_id: str | None = None
+    backend: str = MOCK_BACKEND
+    evidence: list[Receipt] = field(default_factory=list)
 
     def __str__(self) -> str:
-        flag = "🚨 PROPAGANDA" if self.is_propaganda else "✅ CLEAN"
-        return (
-            f"{flag}  [{self.confidence:.0%}]\n"
-            f"Narrative: {self.narrative_label}\n"
-            f"Cluster:   {self.cluster_id or 'unassigned'}"
-        )
+        flag = "PROPAGANDA" if self.is_propaganda else "CLEAN"
+        return f"{flag} [{self.confidence:.0%}] {self.narrative_label} ({self.backend})"
 
 
-# ── Real API client ───────────────────────────────────────────────────────────
+def backend_name() -> str:
+    return os.getenv("CLASSIFIER_BACKEND", MOCK_BACKEND).strip().lower() or MOCK_BACKEND
+
 
 async def classify(text: str) -> ClassificationResult:
-    """
-    Send `text` to the classifier API and return a ClassificationResult.
-    Falls back to mock if the API URL is absent or unreachable.
-    """
-    if not CLASSIFIER_API_URL:
-        logger.warning("CLASSIFIER_API_URL not set — using mock classifier.")
-        return _mock_classify(text)
-
-    endpoint = f"{CLASSIFIER_API_URL.rstrip('/')}/classify"
-    try:
-        async with httpx.AsyncClient(timeout=CLASSIFIER_TIMEOUT) as client:
-            response = await client.post(endpoint, json={"text": text})
-            response.raise_for_status()
-            data = response.json()
-
-        return ClassificationResult(
-            is_propaganda=bool(data.get("is_propaganda", False)),
-            confidence=float(data.get("confidence", 0.0)),
-            narrative_label=str(data.get("narrative_label", "Unknown")),
-            cluster_id=data.get("cluster_id"),
-        )
-
-    except httpx.HTTPStatusError as exc:
-        logger.error("Classifier API returned %s — falling back to mock.", exc.response.status_code)
-        return _mock_classify(text)
-    except Exception as exc:
-        logger.error("Classifier API unreachable (%s) — falling back to mock.", exc)
-        return _mock_classify(text)
+    """Classify `text` with the configured backend."""
+    name = backend_name()
+    if name == MOCK_BACKEND:
+        return mock_classify(text)
+    logger.error("Unknown CLASSIFIER_BACKEND=%r — falling back to mock.", name)
+    return mock_classify(text)
 
 
-# ── Mock classifier (keyword heuristics) ─────────────────────────────────────
-# Used during dev / demo when the real model isn't ready yet.
+# ── Mock classifier ──────────────────────────────────────────────────────────
+# Deterministic keyword heuristics. Word-boundary regexes so "nato" no longer
+# matches "senator". Same text always yields the same result.
 
-_PROPAGANDA_SIGNALS: list[tuple[str, str, str]] = [
-    # (keyword_fragment, narrative_label, cluster_id)
-    ("nato", "Anti-NATO destabilisation",       "cluster_nato"),
-    ("biolabs", "Biolabs conspiracy",            "cluster_biolabs"),
-    ("deep state", "Deep-state narrative",       "cluster_deep_state"),
-    ("zelensky", "Zelensky delegitimisation",    "cluster_zelensky"),
-    ("false flag", "False-flag accusation",      "cluster_false_flag"),
-    ("genocide", "Genocide framing",             "cluster_genocide"),
-    ("sanctions", "Sanctions-backfire narrative","cluster_sanctions"),
-    ("nazi", "Neo-Nazi labelling",               "cluster_nazi"),
-    ("special operation", "War-euphemism framing","cluster_special_op"),
-    ("bioweapon", "Bioweapon conspiracy",        "cluster_biolabs"),
-    ("ukraine is losing", "Defeatism narrative", "cluster_defeatism"),
-    ("western media lies", "MSM distrust frame", "cluster_msm"),
+_SIGNALS: list[tuple[str, str, str, float]] = [
+    # (regex, narrative_label, cluster_id, weight)
+    (r"\bnato\b|\bнато\b", "Anti-NATO destabilisation", "cluster_nato", 1.0),
+    (
+        r"\bbiolabs?\b|\bbioweapons?\b|\bбиолаборатори\w*|\bбиооруж\w*|\bбіолаборатор\w*",
+        "Biolabs conspiracy",
+        "cluster_biolabs",
+        1.5,
+    ),
+    (r"\bdeep state\b|\bглубинн\w+ государств\w*", "Deep-state narrative", "cluster_deep_state", 1.0),
+    (
+        r"\bzelensky\b|\bzelenskyy\b|\bзеленск\w*|\bзеленськ\w*",
+        "Zelensky delegitimisation",
+        "cluster_zelensky",
+        0.7,
+    ),
+    (r"\bfalse flag\b|\bложн\w+ флаг\w*|\bпровокаци\w+", "False-flag accusation", "cluster_false_flag", 1.0),
+    (r"\bgenocide\b|\bгеноцид\w*", "Genocide framing", "cluster_genocide", 1.0),
+    (
+        r"\bnazis?\b|\bneo-nazis?\b|\bнацист\w*|\bнаци\b|\bнацик\w*|\bбандеров\w*",
+        "Neo-Nazi labelling",
+        "cluster_nazi",
+        1.2,
+    ),
+    (
+        r"\bspecial (military )?operation\b|\bспецоперац\w*|\bсво\b",
+        "War-euphemism framing",
+        "cluster_special_op",
+        1.0,
+    ),
+    (r"\bukraine is losing\b|\bукраина проигр\w*", "Defeatism narrative", "cluster_defeatism", 1.0),
+    (r"\bwestern media lies?\b|\bзападн\w+ сми (лгут|врут)\b", "MSM distrust frame", "cluster_msm", 1.0),
+    (r"\bpuppet\b|\bмарионетк\w*", "Puppet-regime framing", "cluster_puppet", 0.8),
+    (
+        r"\bкиевск\w+ режим\w*|\bkiev regime\b|\bkyiv regime\b",
+        "Regime delegitimisation",
+        "cluster_regime",
+        1.2,
+    ),
 ]
+_COMPILED = [(re.compile(p, re.IGNORECASE), label, cid, w) for p, label, cid, w in _SIGNALS]
 
 
-def _mock_classify(text: str) -> ClassificationResult:
-    """
-    Heuristic mock: scan for known propaganda keywords.
-    Returns a realistic-looking result for demo purposes.
-    """
-    lower = text.lower()
-    for keyword, label, cluster_id in _PROPAGANDA_SIGNALS:
-        if keyword in lower:
-            confidence = round(random.uniform(0.75, 0.97), 2)
-            return ClassificationResult(
-                is_propaganda=True,
-                confidence=confidence,
-                narrative_label=label,
-                cluster_id=cluster_id,
-            )
+def mock_classify(text: str) -> ClassificationResult:
+    hits = [(label, cid, w) for rx, label, cid, w in _COMPILED if rx.search(text)]
+    if not hits:
+        return ClassificationResult(False, 0.9, "None detected", None, MOCK_BACKEND)
 
-    # Not propaganda
-    confidence = round(random.uniform(0.78, 0.99), 2)
-    return ClassificationResult(
-        is_propaganda=False,
-        confidence=confidence,
-        narrative_label="None detected",
-        cluster_id=None,
-    )
+    # Strongest signal decides the label; more/heavier hits raise confidence.
+    label, cid, _ = max(hits, key=lambda h: h[2])
+    total = sum(w for _, _, w in hits)
+    confidence = round(min(0.95, 0.55 + 0.15 * total), 2)
+    return ClassificationResult(True, confidence, label, cid, MOCK_BACKEND)

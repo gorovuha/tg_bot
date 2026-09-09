@@ -1,13 +1,11 @@
-# Environment — never commit secrets
 .env
-
-# Python virtualenv
 .venv/
 __pycache__/
 *.py[cod]
-
-# SQLite database (auto-created at runtime)
+.pytest_cache/
+.ruff_cache/
 data/
-
-# macOS
 .DS_Store
+docs/
+
+CLAUDE.md
