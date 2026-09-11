@@ -20,7 +20,7 @@ load_dotenv()
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
-from bot.handlers import COMMANDS, channel_command, message_handler
+from bot.handlers import COMMANDS, channel_command, error_handler, message_handler
 from services.classifier import backend_name
 from storage.db import db_path, init_db
 
@@ -49,6 +49,7 @@ def build_app(token: str):
             message_handler,
         )
     )
+    app.add_error_handler(error_handler)
     return app
 
 

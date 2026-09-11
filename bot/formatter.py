@@ -5,6 +5,7 @@ Telegram HTML rendering. Every user- or backend-provided string goes through `es
 
 from __future__ import annotations
 
+import sqlite3
 from collections.abc import Mapping
 from datetime import datetime
 from html import escape
@@ -39,8 +40,10 @@ def _conf_bar(confidence: float, length: int = 10) -> str:
     return "█" * filled + "░" * (length - filled)
 
 
-def source_line(row: Mapping) -> str:
+def source_line(row: Mapping | sqlite3.Row) -> str:
     """'📡 Channel Title · fwd from X · link' built from message origin fields (missing keys tolerated)."""
+    if isinstance(row, sqlite3.Row):
+        row = dict(row)
     parts: list[str] = []
     origin = row.get("sender_chat_title") or row.get("chat_title")
     if origin:
@@ -118,7 +121,7 @@ def format_report(rows: list[Mapping]) -> str:
     n = len(rows)
     lines = [f"📋 <b>PROPAGANDA REPORT</b>  ({n} hit{'s' if n != 1 else ''})\n{RULE}\n"]
     for i, row in enumerate(rows, 1):
-        user_str = f"@{esc(row['username'])}" if row["username"] else "unknown"
+        user_str = f"@{esc(row['username'])}" if row["username"] else esc(row["sender_chat_title"] or "unknown")
         cluster = f"🗂 <code>{esc(row['cluster_id'])}</code>  " if row["cluster_id"] else ""
         src = source_line(row)
         lines.append(

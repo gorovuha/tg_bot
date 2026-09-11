@@ -15,6 +15,7 @@ so `channel_command` parses them and dispatches to the same functions.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 
@@ -27,6 +28,7 @@ from telegram import (
     Update,
 )
 from telegram.constants import ChatMemberStatus, ChatType
+from telegram.error import NetworkError
 from telegram.ext import ContextTypes
 
 from bot.formatter import (
@@ -92,7 +94,23 @@ def extract_origin(msg: Message) -> dict:
 
 
 async def _reply(update: Update, html: str) -> None:
-    await update.effective_message.reply_html(html, disable_web_page_preview=True)
+    """Reply in HTML; retry once after a transient network error so a flag isn't silently lost."""
+    msg = update.effective_message
+    try:
+        await msg.reply_html(html, disable_web_page_preview=True)
+    except NetworkError as exc:
+        logger.warning("Reply failed (%s), retrying once", exc)
+        await asyncio.sleep(1.5)
+        await msg.reply_html(html, disable_web_page_preview=True)
+
+
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Log errors compactly; network blips don't deserve a 100-line traceback."""
+    err = context.error
+    if isinstance(err, NetworkError):
+        logger.warning("Network error while handling update: %s", err)
+        return
+    logger.exception("Unhandled error while processing update %s", update, exc_info=err)
 
 
 async def _is_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
