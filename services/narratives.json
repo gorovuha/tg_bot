@@ -1,0 +1,315 @@
+{
+ "_comment": "Top-level pro-Kremlin narratives. Each EUvsDisinfo case is assigned to the nearest narrative by embedding similarity of `prototypes` (see scripts/build_index.py). Derived from k-means over 19.7k cases, hand-labelled 2026-09-11.",
+ "narratives": [
+  {
+   "id": "nato_threat",
+   "label": "NATO as aggressor threatening Russia",
+   "label_ru": "НАТО угрожает России",
+   "prototypes": [
+    "NATO is preparing to strike Russia and uses the Russian threat to justify its expansion",
+    "NATO expansion to the east forced Russia to defend itself",
+    "NATO is provoking Russia near its borders and rehearsing a war against it"
+   ]
+  },
+  {
+   "id": "west_destroy_russia",
+   "label": "The West wages war on Russia (Russophobia)",
+   "label_ru": "Запад хочет уничтожить Россию",
+   "prototypes": [
+    "The West is waging a campaign of Russophobia and hatred to destroy Russia",
+    "Western elites want to dismember Russia and take its resources",
+    "The West is waging a proxy war against Russia to wear it down"
+   ]
+  },
+  {
+   "id": "us_hegemon",
+   "label": "US provokes wars to dominate",
+   "label_ru": "США провоцируют войны ради гегемонии",
+   "prototypes": [
+    "The United States provoked the war in Ukraine to weaken Russia and sell weapons",
+    "The US wants to make Ukraine its colony and drag Russia into war",
+    "Washington controls Europe and pushes its vassals towards war"
+   ]
+  },
+  {
+   "id": "ukraine_nazi",
+   "label": "Ukraine is a Nazi state",
+   "label_ru": "Украина — нацистское государство",
+   "prototypes": [
+    "Ukraine is a neo-Nazi state and its government is fascist",
+    "Russia aims to denazify Ukraine",
+    "Ukrainian authorities glorify Nazi collaborators and Bandera"
+   ]
+  },
+  {
+   "id": "ukraine_puppet",
+   "label": "Ukraine is a Western puppet / anti-Russia project",
+   "label_ru": "Украина — марионетка Запада",
+   "prototypes": [
+    "Ukraine is the West's anti-Russia project and is controlled by the US and EU",
+    "Ukraine is a colony under external management",
+    "The West has turned away from Ukraine and drags it into poverty"
+   ]
+  },
+  {
+   "id": "russian_world",
+   "label": "Ukraine is not a real state / part of the Russian world",
+   "label_ru": "Украина — часть русского мира",
+   "prototypes": [
+    "Ukraine is part of the Russian world and was artificially created as a state hostile to Russia",
+    "Russians and Ukrainians are one people and Ukraine has no real statehood",
+    "Ukraine bans the Russian language, culture and Orthodox church"
+   ]
+  },
+  {
+   "id": "maidan_coup",
+   "label": "2014 Maidan was a Western-backed coup",
+   "label_ru": "Майдан — переворот, организованный Западом",
+   "prototypes": [
+    "The 2014 Maidan was a coup d'état organised and financed by the US and EU",
+    "The war in Ukraine started with the Western-backed coup in Kyiv in 2014",
+    "Maidan protesters were paid by Western foundations and shot by their own snipers"
+   ]
+  },
+  {
+   "id": "zelensky_regime",
+   "label": "Zelensky regime is illegitimate / corrupt",
+   "label_ru": "Режим Зеленского нелегитимен",
+   "prototypes": [
+    "Zelensky is illegitimate and his regime is doomed",
+    "The Kyiv regime is corrupt and steals Western aid",
+    "Zelensky blackmails the West and sacrifices Ukrainians"
+   ]
+  },
+  {
+   "id": "donbas_genocide",
+   "label": "Ukraine commits genocide in Donbas",
+   "label_ru": "Геноцид в Донбассе",
+   "prototypes": [
+    "Ukraine has organised a genocide of the population of Donbas",
+    "The Ukrainian army deliberately kills civilians in Donbas",
+    "Kyiv wants to restart the war in Donbas and provoke Russia"
+   ]
+  },
+  {
+   "id": "ukraine_provocations",
+   "label": "Kyiv stages false-flag provocations",
+   "label_ru": "Киев готовит провокации под ложным флагом",
+   "prototypes": [
+    "Ukraine is preparing a chemical weapons provocation to blame Russia",
+    "Kyiv plans a dirty bomb and nuclear terrorism to accuse Russia",
+    "Ukraine stages terrorist attacks and false flags with Western intelligence"
+   ]
+  },
+  {
+   "id": "ukraine_terrorism",
+   "label": "Ukraine is a terrorist state attacking civilians",
+   "label_ru": "Украина — террористическое государство",
+   "prototypes": [
+    "Ukraine is a terrorist state that shells civilians and uses them as human shields",
+    "Ukraine attacks nuclear power plants and commits acts of terrorism in Russia",
+    "Ukrainian military uses terrorist methods"
+   ]
+  },
+  {
+   "id": "russia_defensive_war",
+   "label": "Russia's war is defensive / peace-seeking",
+   "label_ru": "Россия ведёт оборонительную войну и хочет мира",
+   "prototypes": [
+    "Russia did not start the war in Ukraine and is trying to end it",
+    "Russia is protecting people and stopping the war unleashed by the West",
+    "Russia is winning against the collective West in Ukraine"
+   ]
+  },
+  {
+   "id": "west_prolongs_war",
+   "label": "The West does not want peace, prolongs the war",
+   "label_ru": "Запад не хочет мира",
+   "prototypes": [
+    "The West is not interested in peace between Russia and Ukraine",
+    "The West blocks Russia's honest peace efforts and prolongs the conflict",
+    "Europe demonises anyone seeking to end the war"
+   ]
+  },
+  {
+   "id": "crimea_legal",
+   "label": "Crimea legally joined Russia",
+   "label_ru": "Крым законно присоединился к России",
+   "prototypes": [
+    "Crimea became part of Russia after a legal referendum in 2014",
+    "Crimea joined Russia by the will of its inhabitants in accordance with international law",
+    "The Crimean issue was solved once and for all by the referendum"
+   ]
+  },
+  {
+   "id": "sanctions_backfire",
+   "label": "Sanctions hurt the West, not Russia",
+   "label_ru": "Санкции бьют по Западу",
+   "prototypes": [
+    "Sanctions against Russia hurt Europe and help Russia",
+    "The West wanted to destroy the Russian economy but destroyed its own",
+    "The EU is suffering from its own anti-Russian sanctions"
+   ]
+  },
+  {
+   "id": "eu_russophobic_vassal",
+   "label": "EU is Russophobic and a US vassal",
+   "label_ru": "ЕС русофобский вассал США",
+   "prototypes": [
+    "The EU has become a Russophobic coalition led by the US",
+    "Brussels is obsessed with anti-Russian sanctions and destroyed cooperation with Russia",
+    "European countries are vassals following US orders against Russia"
+   ]
+  },
+  {
+   "id": "eu_collapse",
+   "label": "EU is totalitarian / collapsing / lost sovereignty",
+   "label_ru": "ЕС тоталитарен и разваливается",
+   "prototypes": [
+    "The European Union is a totalitarian regime and a Fourth Reich",
+    "European countries have lost their sovereignty to Brussels",
+    "The EU is dead and disintegrating"
+   ]
+  },
+  {
+   "id": "west_moral_decay",
+   "label": "West is morally decayed (LGBT, migrants, globalists)",
+   "label_ru": "Моральное разложение Запада",
+   "prototypes": [
+    "Europe is being turned into a concentration camp for migrants and destroys traditional values",
+    "Western elites persecute Christians and impose LGBT ideology",
+    "Soros and the globalists spread chaos and colour revolutions"
+   ]
+  },
+  {
+   "id": "deep_state_conspiracy",
+   "label": "Deep state / secret world government",
+   "label_ru": "Глубинное государство и мировое правительство",
+   "prototypes": [
+    "A secret global government and the deep state control Western politics",
+    "CIA and the deep state orchestrate wars and coups",
+    "Globalist elites plan to enslave the world"
+   ]
+  },
+  {
+   "id": "eu_integration_ruin",
+   "label": "EU integration ruins countries (Georgia, Moldova, Ukraine)",
+   "label_ru": "Евроинтеграция ведёт к разорению",
+   "prototypes": [
+    "EU integration will impoverish Georgia and Moldova just like the Baltics",
+    "European integration means involvement in a war with Russia",
+    "Association with the EU destroyed the Ukrainian economy"
+   ]
+  },
+  {
+   "id": "baltics_russophobia",
+   "label": "Baltic states are Russophobic / persecute Russians",
+   "label_ru": "Русофобия и дискриминация в Прибалтике",
+   "prototypes": [
+    "The Baltic states discriminate against ethnic Russians and build apartheid regimes",
+    "Lithuania and Latvia trade Russophobia for EU and US money",
+    "The Baltic states persecute Russian media"
+   ]
+  },
+  {
+   "id": "poland_revanchism",
+   "label": "Poland wants to annex Western Ukraine / rewrites WWII",
+   "label_ru": "Польский реваншизм и переписывание истории",
+   "prototypes": [
+    "Poland wants to seize Western Ukraine and Western Belarus",
+    "Poland was an ally of Nazi Germany and rewrites the history of WWII",
+    "Poland leads a Russophobic campaign to destroy Russia"
+   ]
+  },
+  {
+   "id": "belarus_destabilisation",
+   "label": "The West destabilises Belarus",
+   "label_ru": "Запад дестабилизирует Беларусь",
+   "prototypes": [
+    "Poland and Lithuania are behind the protests in Belarus",
+    "The West wants to turn Belarus into an anti-Russian outpost",
+    "Western hybrid war against Belarus prepares an attack on Russia"
+   ]
+  },
+  {
+   "id": "biolabs",
+   "label": "US biolabs develop bioweapons",
+   "label_ru": "Американские биолаборатории",
+   "prototypes": [
+    "US biolabs have been developing biological weapons in Ukraine",
+    "The United States runs secret biological laboratories in Georgia and tests on people",
+    "Pentagon-funded laboratories spread new diseases"
+   ]
+  },
+  {
+   "id": "covid_conspiracy",
+   "label": "COVID conspiracy / anti-Sputnik V campaign",
+   "label_ru": "Ковид-конспирология и кампания против Спутника",
+   "prototypes": [
+    "Coronavirus is a US biological weapon against China and Russia",
+    "The West is waging a war against the Sputnik V vaccine out of competition",
+    "COVID-19 is a tool to enslave the world"
+   ]
+  },
+  {
+   "id": "mh17",
+   "label": "MH17 denial",
+   "label_ru": "Отрицание вины за MH17",
+   "prototypes": [
+    "Russia did not shoot down MH17 and there is no evidence of a BUK missile",
+    "The MH17 investigation is biased and ignores Russian evidence",
+    "MH17 was a Ukrainian provocation"
+   ]
+  },
+  {
+   "id": "poisonings_staged",
+   "label": "Poisonings (Navalny, Skripal) are Western provocations",
+   "label_ru": "Отравления Навального и Скрипалей — провокация",
+   "prototypes": [
+    "Navalny's poisoning was staged to impose sanctions on Russia",
+    "The Skripal case is a Western provocation with no evidence against Russia",
+    "There is no proof Navalny was poisoned"
+   ]
+  },
+  {
+   "id": "elections_interference_denial",
+   "label": "No Russian election interference / Western elections rigged",
+   "label_ru": "Отрицание вмешательства в выборы",
+   "prototypes": [
+    "Russia never interfered in US or European elections",
+    "The 2020 US election was stolen and massively corrupt",
+    "Accusations of Russian interference are fabricated by the deep state"
+   ]
+  },
+  {
+   "id": "syria_middle_east",
+   "label": "US created ISIS / White Helmets stage attacks",
+   "label_ru": "США создали ИГИЛ, Белые каски инсценируют атаки",
+   "prototypes": [
+    "The United States created ISIS and supports terrorists in Syria",
+    "The White Helmets staged chemical attacks to blame Assad",
+    "The chemical attack in Douma was fabricated"
+   ]
+  },
+  {
+   "id": "staged_incidents",
+   "label": "Anti-Russian incidents in Europe are staged",
+   "label_ru": "Инциденты в Европе инсценированы против России",
+   "prototypes": [
+    "The Vrbětice explosion accusations are fabricated anti-Russian propaganda",
+    "The expulsion of Russian diplomats is a smokescreen designed by the US",
+    "Sabotage and drone incidents in Europe are provocations staged by Ukraine and Western elites"
+   ]
+  },
+  {
+   "id": "black_sea_provocations",
+   "label": "Kerch / Black Sea provocations by Ukraine and NATO",
+   "label_ru": "Провокации в Керченском проливе и Чёрном море",
+   "prototypes": [
+    "The Kerch Strait incident was a provocation by Kyiv",
+    "Ukrainian vessels violated Russian territorial waters",
+    "NATO warships in the Black Sea are a provocation against Russia"
+   ]
+  }
+ ]
+}
