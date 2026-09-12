@@ -226,9 +226,20 @@ def unflag(message_id: int) -> None:
 
 _FLAGGED_SELECT = """
     SELECT f.*, m.text, m.username, m.timestamp, m.chat_title, m.sender_chat_title,
-           m.fwd_chat_title, m.fwd_chat_username, m.fwd_sender_name, m.link, m.source
+           m.fwd_chat_title, m.fwd_chat_username, m.fwd_sender_name, m.link, m.source,
+           m.embedding, m.fwd_chat_id, m.sender_chat_id
     FROM flagged f JOIN messages m ON f.message_id = m.id
 """
+
+
+def get_flagged_all(limit: int = 2000, source: str = SOURCE_WATCH) -> list[sqlite3.Row]:
+    """Flagged messages across every chat the bot watches (for /channels), newest first."""
+    conn = get_connection()
+    rows = conn.execute(
+        _FLAGGED_SELECT + " WHERE m.source=? ORDER BY f.id DESC LIMIT ?", (source, limit)
+    ).fetchall()
+    conn.close()
+    return rows
 
 
 def get_flagged_for_chat(chat_id: int, limit: int = 20) -> list[sqlite3.Row]:

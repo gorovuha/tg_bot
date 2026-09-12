@@ -184,3 +184,73 @@ def format_watch_off() -> str:
         "🔇 <b>Watch mode DISABLED</b>\nI've stopped monitoring this chat.\n"
         "Use /watch to re-enable.  Stored receipts still available via /report."
     )
+
+
+# ── /cluster and /channels (phase 4) ─────────────────────────────────────────
+
+
+def _span(td) -> str:
+    h = td.total_seconds() / 3600
+    return f"{h * 60:.0f} min" if h < 1 else f"{h:.0f} h" if h < 48 else f"{h / 24:.0f} d"
+
+
+def format_cluster_map(clusters, days: int = 14, scope: str = "this chat") -> str:
+    """Embedding clusters of flagged messages with a per-day sparkline and source channels."""
+    from services.clustering import sparkline
+
+    if not clusters:
+        return "🗂 <b>No clusters yet.</b>\nEnable /watch and collect some messages first."
+    total = sum(c.size for c in clusters)
+    n = len(clusters)
+    lines = [
+        (
+            f"🗺 <b>NARRATIVE CLUSTER MAP</b> — {esc(scope)}\n"
+            f"{n} cluster{'s' if n != 1 else ''}  ·  {total} flagged  ·  last {days} days per bar\n{RULE}\n"
+        )
+    ]
+    for c in clusters[:12]:
+        src = ", ".join(f"{esc(name)} ({cnt})" for name, cnt in c.sources.most_common(4))
+        when = (
+            f"{c.first_seen:%d %b}"
+            if c.first_seen.date() == c.last_seen.date()
+            else f"{c.first_seen:%d %b} → {c.last_seen:%d %b}"
+        )
+        lines.append(
+            f"<b>#{c.id}  {esc(c.label)}</b>\n"
+            f"   {c.size} msg{'s' if c.size != 1 else ''}  ·  avg {c.avg_confidence:.0%}  ·  {when}\n"
+            f"   <code>{sparkline(c.daily_counts(days))}</code>\n"
+            f"   📡 {src}\n"
+            f'   <i>"{trim(c.rows[0]["text"], 90)}"</i>\n'
+        )
+    if n > 12:
+        lines.append(f"… and {n - 12} smaller clusters\n")
+    lines.append(RULE + "\nUse /channels to compare sources.")
+    return "\n".join(lines)
+
+
+def format_channels(report, label_of=None) -> str:
+    """Channel × narrative profile, channel pairs sharing narratives, synchronous pushes."""
+    label_of = label_of or {}
+    if not report.channels:
+        return "📡 <b>No channel data yet.</b>\nWatch a few channels (or forward posts from them) first."
+    lines = [f"📡 <b>CHANNEL COMPARISON</b>  ({len(report.channels)} sources)\n{RULE}\n"]
+    for p in report.channels[:10]:
+        top = "  ·  ".join(f"{esc(label_of.get(k, k))} ×{v}" for k, v in p.narratives.most_common(3))
+        known = (
+            f"\n   ⚠️ cited as a spreader in {p.known_case_hits} EUvsDisinfo cases"
+            if p.known_case_hits
+            else ""
+        )
+        lines.append(f"<b>{esc(p.name)}</b> — {p.total} flagged\n   {top}{known}\n")
+    if report.pairs:
+        lines.append(f"{RULE}\n🔗 <b>Channels pushing the same narratives</b>")
+        for a, b, n, labels in report.pairs[:6]:
+            lines.append(f"  • <b>{esc(a)}</b> ↔ <b>{esc(b)}</b>: {n} shared — {esc('; '.join(labels[:3]))}")
+        lines.append("")
+    if report.synchronous:
+        lines.append(f"{RULE}\n⏱ <b>Synchronous pushes</b> (same cluster, several channels within 24 h)")
+        for label, chans, span in report.synchronous[:6]:
+            lines.append(f"  • {esc(label)}: {esc(', '.join(chans))} within {_span(span)}")
+        lines.append("")
+    lines.append(RULE)
+    return "\n".join(lines)

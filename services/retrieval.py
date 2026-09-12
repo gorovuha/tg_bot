@@ -167,6 +167,15 @@ class RetrievalClassifier:
         return self.classify_vector(self.embed(text))
 
 
+def known_telegram_channels(cases: list[dict]) -> dict[str, int]:
+    """Telegram channel usernames (lowercase) that EUvsDisinfo cases cite as spreaders → number of cases."""
+    counts: dict[str, int] = {}
+    for c in cases:
+        for u in c.get("telegram_channels") or []:
+            counts[u.lower()] = counts.get(u.lower(), 0) + 1
+    return counts
+
+
 _instance: RetrievalClassifier | None = None
 
 

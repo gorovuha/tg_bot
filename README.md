@@ -23,9 +23,11 @@ bot/handlers.py        commands + watcher; channel-post command dispatcher
 bot/formatter.py       Telegram HTML rendering
 services/classifier.py classify(text) -> ClassificationResult; backend switch (retrieval | mock)
 services/retrieval.py  nearest-case search over the EUvsDisinfo index, receipts, narrative label
+services/clustering.py agglomerative clusters over stored embeddings, timelines, channel comparison
 services/narratives.json  31 top-level narratives (EN/RU labels, prototype sentences)
 storage/db.py          SQLite: messages (origin, link, embedding), flagged (unique per message), watch_chats
-scripts/               fetch_euvsdisinfo.py (data), build_index.py (index), evaluate.py (metrics + threshold)
+scripts/               fetch_euvsdisinfo.py (data), build_index.py (index), evaluate.py (metrics + threshold),
+                       seed_demo.py (synthetic multi-channel posts to try /cluster and /channels)
 tests/                 pytest
 ```
 
@@ -61,7 +63,8 @@ Add the bot to a group or channel **as admin**, then send `/watch`.
 | `/analyze <text>` | Analyse a specific text |
 | `/analyze` as a reply | Analyse the replied-to message |
 | `/report [N]` | Last N flagged messages with source and link |
-| `/cluster` | Narrative clusters with source channels |
+| `/cluster` / `/cluster all` | Narrative clusters (embedding-based) with a 14-day timeline and source channels, for this chat or all watched chats |
+| `/channels` | Which sources push which narratives, channel pairs sharing narratives, synchronous pushes, channels already cited by EUvsDisinfo |
 
 Commands work in private chats, groups and channels (channel posts are dispatched manually since
 Telegram's command handler ignores them).

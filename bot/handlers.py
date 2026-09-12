@@ -33,13 +33,15 @@ from telegram.ext import ContextTypes
 
 from bot.formatter import (
     format_analyze_result,
-    format_clusters,
+    format_channels,
+    format_cluster_map,
     format_flag_alert,
     format_report,
     format_watch_off,
     format_watch_on,
 )
 from services.classifier import classify
+from services.clustering import channel_report, cluster_messages
 from storage import db
 
 logger = logging.getLogger(__name__)
@@ -154,7 +156,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "/analyze (as a reply) — Analyse the replied-to message\n"
         "/report      — Show last 10 flagged messages (receipts)\n"
         "/report 20   — Show last 20 flagged messages\n"
-        "/cluster     — Map narrative clusters\n"
+        "/cluster     — Narrative clusters over time (this chat; /cluster all for every chat)\n"
+        "/channels    — Which channels push the same narratives\n"
         "/help        — Show this message\n" + "━" * 25 + "\n"
         "🧾 Every flag comes with receipts: the closest documented EUvsDisinfo cases and their debunks.\n"
         "⚠️ Watch mode must be enabled to collect messages automatically.",
@@ -240,9 +243,42 @@ async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await _reply(update, format_report(list(rows)))
 
 
+def _narrative_labels() -> dict[str, str]:
+    try:
+        from services.retrieval import get_classifier
+
+        return get_classifier().narrative_label
+    except Exception:  # noqa: BLE001 — mock backend / no index: labels come from rows instead
+        return {}
+
+
 async def cluster_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    clusters = db.get_clusters_for_chat(update.effective_chat.id)
-    await _reply(update, format_clusters(clusters))
+    """/cluster — narrative clusters in this chat; /cluster all — across every watched chat."""
+    everything = bool(context.args) and context.args[0].lower() == "all"
+    rows = (
+        db.get_flagged_all() if everything else db.get_flagged_for_chat(update.effective_chat.id, limit=1000)
+    )
+    clusters = await asyncio.to_thread(cluster_messages, rows)
+    await _reply(
+        update, format_cluster_map(clusters, scope="all watched chats" if everything else "this chat")
+    )
+
+
+async def channels_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """/channels — which sources push which narratives, across every watched chat."""
+    rows = db.get_flagged_all()
+    known: dict[str, int] = {}
+    try:
+        from services.retrieval import get_classifier, known_telegram_channels
+
+        known = known_telegram_channels(get_classifier().cases)
+    except Exception as exc:  # noqa: BLE001 — mock backend / no index: just skip the spreader lookup
+        logger.debug("known-channel lookup unavailable: %s", exc)
+    report = await asyncio.to_thread(channel_report, rows, known)
+    # Labels: what each row was flagged with (covers legacy/mock ids), overridden by the current taxonomy.
+    labels = {r["cluster_id"]: r["narrative_label"] for r in rows if r["cluster_id"]}
+    labels.update(_narrative_labels())
+    await _reply(update, format_channels(report, labels))
 
 
 COMMANDS = {
@@ -252,6 +288,7 @@ COMMANDS = {
     "analyze": analyze_command,
     "report": report_command,
     "cluster": cluster_command,
+    "channels": channels_command,
 }
 
 _CMD_RE = re.compile(r"^/(\w+)(?:@(\w+))?(?:\s+(.*))?$", re.DOTALL)
