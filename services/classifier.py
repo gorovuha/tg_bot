@@ -2,9 +2,9 @@
 services/classifier.py
 Classification layer: `classify(text)` returns a ClassificationResult.
 
-Backends (selected with CLASSIFIER_BACKEND, default "mock"):
-  mock       — deterministic keyword heuristics (RU/UK/EN). Demo only; never a real model.
-  retrieval  — (phase 2) embedding search over EUvsDisinfo cases; see docs/PLAN.md.
+Backends (selected with CLASSIFIER_BACKEND, default "retrieval"):
+  retrieval  — embedding search over EUvsDisinfo cases (services/retrieval.py); needs data/index/.
+  mock       — deterministic keyword heuristics (RU/UK/EN). Demo/tests only; never a real model.
 
 `ClassificationResult` is the contract between the bot and any backend. Extend it,
 don't leak backend internals into handlers.
@@ -12,6 +12,7 @@ don't leak backend internals into handlers.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import re
@@ -20,6 +21,7 @@ from dataclasses import dataclass, field
 logger = logging.getLogger(__name__)
 
 MOCK_BACKEND = "mock"
+RETRIEVAL_BACKEND = "retrieval"
 
 
 @dataclass
@@ -40,6 +42,7 @@ class ClassificationResult:
     cluster_id: str | None = None
     backend: str = MOCK_BACKEND
     evidence: list[Receipt] = field(default_factory=list)
+    embedding: list[float] | None = None  # query vector (retrieval backend) — stored for clustering
 
     def __str__(self) -> str:
         flag = "PROPAGANDA" if self.is_propaganda else "CLEAN"
@@ -47,7 +50,18 @@ class ClassificationResult:
 
 
 def backend_name() -> str:
-    return os.getenv("CLASSIFIER_BACKEND", MOCK_BACKEND).strip().lower() or MOCK_BACKEND
+    return os.getenv("CLASSIFIER_BACKEND", RETRIEVAL_BACKEND).strip().lower() or RETRIEVAL_BACKEND
+
+
+def ensure_backend_ready() -> None:
+    """Fail fast at startup if the configured backend can't run (no silent fallback to mock)."""
+    name = backend_name()
+    if name == RETRIEVAL_BACKEND:
+        from services.retrieval import get_classifier
+
+        get_classifier()  # raises IndexMissingError with build instructions
+    elif name != MOCK_BACKEND:
+        raise RuntimeError(f"Unknown CLASSIFIER_BACKEND={name!r} (use 'retrieval' or 'mock')")
 
 
 async def classify(text: str) -> ClassificationResult:
@@ -55,8 +69,10 @@ async def classify(text: str) -> ClassificationResult:
     name = backend_name()
     if name == MOCK_BACKEND:
         return mock_classify(text)
-    logger.error("Unknown CLASSIFIER_BACKEND=%r — falling back to mock.", name)
-    return mock_classify(text)
+    from services.retrieval import get_classifier
+
+    clf = get_classifier()
+    return await asyncio.to_thread(clf.classify, text)  # embedding is CPU-bound; keep the event loop free
 
 
 # ── Mock classifier ──────────────────────────────────────────────────────────

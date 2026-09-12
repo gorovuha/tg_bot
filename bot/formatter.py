@@ -66,7 +66,9 @@ def _backend_note(backend: str | None) -> str:
 def format_evidence(result: ClassificationResult, max_items: int = 3) -> str:
     if not result.evidence:
         return ""
-    lines = ["🧾 <b>Receipts:</b>"]
+    lines = [
+        "🧾 <b>Receipts:</b>" if result.is_propaganda else "🔎 <b>Nearest known case</b> (below threshold):"
+    ]
     for r in result.evidence[:max_items]:
         title = f'<a href="{esc(r.url)}">{esc(r.title)}</a>' if r.url else esc(r.title)
         lines.append(f"  • {title} ({r.similarity:.0%})")
@@ -121,7 +123,9 @@ def format_report(rows: list[Mapping]) -> str:
     n = len(rows)
     lines = [f"📋 <b>PROPAGANDA REPORT</b>  ({n} hit{'s' if n != 1 else ''})\n{RULE}\n"]
     for i, row in enumerate(rows, 1):
-        user_str = f"@{esc(row['username'])}" if row["username"] else esc(row["sender_chat_title"] or "unknown")
+        user_str = (
+            f"@{esc(row['username'])}" if row["username"] else esc(row["sender_chat_title"] or "unknown")
+        )
         cluster = f"🗂 <code>{esc(row['cluster_id'])}</code>  " if row["cluster_id"] else ""
         src = source_line(row)
         lines.append(

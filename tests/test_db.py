@@ -67,3 +67,14 @@ def test_migration_adds_columns_to_old_schema(tmp_path, monkeypatch):
     rows = db.get_flagged_for_chat(1)
     assert len(rows) == 1 and rows[0]["narrative_label"] == "B"
     db.save_message(1, None, None, "new", link="l")  # new columns usable
+
+
+def test_embedding_roundtrip(fresh_db):
+    import array
+
+    db = fresh_db
+    mid = db.save_message(1, None, None, "t")
+    db.save_embedding(mid, [0.5, -1.0, 2.0])
+    db.save_embedding(mid + 99, None)  # no-op
+    blob = db.get_recent_messages(1)[0]["embedding"]
+    assert list(array.array("f", blob)) == [0.5, -1.0, 2.0]

@@ -156,6 +156,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "/report 20   — Show last 20 flagged messages\n"
         "/cluster     — Map narrative clusters\n"
         "/help        — Show this message\n" + "━" * 25 + "\n"
+        "🧾 Every flag comes with receipts: the closest documented EUvsDisinfo cases and their debunks.\n"
         "⚠️ Watch mode must be enabled to collect messages automatically.",
     )
 
@@ -191,6 +192,7 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         msg_id = db.save_message(
             chat.id, user.id if user else None, user.username if user else None, text, source=db.SOURCE_ADHOC
         )
+        db.save_embedding(msg_id, result.embedding)
         if result.is_propaganda:
             db.save_flagged(
                 msg_id, chat.id, result.narrative_label, result.confidence, result.cluster_id, result.backend
@@ -211,6 +213,7 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     hits = 0
     for row in messages:
         result = await classify(row["text"])
+        db.save_embedding(row["id"], result.embedding)
         if result.is_propaganda:
             hits += 1
             db.save_flagged(
@@ -289,6 +292,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     msg_id = db.save_message(chat_id, user.id if user else None, username, text, **origin)
 
     result = await classify(text)
+    db.save_embedding(msg_id, result.embedding)
     logger.info("chat=%s msg=%s %s", chat_id, msg_id, result)
     if result.is_propaganda:
         db.save_flagged(

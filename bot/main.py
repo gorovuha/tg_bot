@@ -21,7 +21,7 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 
 from bot.handlers import COMMANDS, channel_command, error_handler, message_handler
-from services.classifier import backend_name
+from services.classifier import backend_name, ensure_backend_ready
 from storage.db import db_path, init_db
 
 logging.basicConfig(
@@ -60,6 +60,11 @@ def main() -> None:
         sys.exit(1)
 
     init_db()
+    try:
+        ensure_backend_ready()
+    except Exception as exc:  # noqa: BLE001 — any startup failure should be shown, not hidden
+        logger.critical("Classifier backend %r is not usable: %s", backend_name(), exc)
+        sys.exit(1)
     app = build_app(token)
 
     logger.info("▶  Propaganda Watchdog Bot is running.")

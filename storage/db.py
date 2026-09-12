@@ -58,6 +58,7 @@ _MESSAGE_COLUMNS: dict[str, str] = {
     "link": "TEXT",
     "source": "TEXT NOT NULL DEFAULT 'watch'",
     "lang": "TEXT",
+    "embedding": "BLOB",  # float32 query vector from the retrieval backend, for clustering
 }
 
 
@@ -161,6 +162,19 @@ def save_message(
         row_id = cur.lastrowid
     conn.close()
     return int(row_id)
+
+
+def save_embedding(message_id: int, vector: list[float] | None) -> None:
+    """Store the message's embedding (float32 little-endian bytes); no-op when the backend has none."""
+    if not vector:
+        return
+    import array
+
+    blob = array.array("f", vector).tobytes()
+    conn = get_connection()
+    with conn:
+        conn.execute("UPDATE messages SET embedding=? WHERE id=?", (blob, message_id))
+    conn.close()
 
 
 def get_recent_messages(chat_id: int, limit: int = 10) -> list[sqlite3.Row]:
